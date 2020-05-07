@@ -42,7 +42,7 @@ class TemplateSkill(MycroftSkill):
             else:
                 i += 1
 
-    @intent_handler(add_event_intent = IntentBuilder('EventIntent').require('Add').require('Event').require('Person').optionally('Location').optionally('time').build())
+    @intent_handler(IntentBuilder('EventIntent').require('Add').require('Event').require('Person').optionally('Location').optionally('time').build())
     def createevent(self,message):
         #extract the location
         location = (message.data.get('Location',None))
@@ -51,8 +51,6 @@ class TemplateSkill(MycroftSkill):
         list1 = x.split("with")
         list2 = list1[1].split("in")
         listpersons = list2[0].split("and")
-
-
 
         #AUTHORIZE
         creds = None
@@ -121,14 +119,18 @@ class TemplateSkill(MycroftSkill):
                                                              fields='connections,totalItems,nextSyncToken').execute()
         connections = results.get('connections', [])
         print("connections:", connections)
-        #extraire l'email
-        nameroom = ['Midoune Room','Aiguilles Room','Barrouta Room','Kantaoui Room','Gorges Room','Ichkeul Room','Khemir Room','Tamaghza Room','Friguia Room','Ksour Room','Medeina Room','Thyna Room']
-        emailroom = ["focus-corporation.com_3436373433373035363932@resource.calendar.google.com","focus-corporation.com_3132323634363237333835@resource.calendar.google.com","focus-corporation.com_3335353934333838383834@resource.calendar.google.com","focus-corporation.com_3335343331353831343533@resource.calendar.google.com","focus-corporation.com_3436383331343336343130@resource.calendar.google.com","focus-corporation.com_36323631393136363531@resource.calendar.google.com","focus-corporation.com_3935343631343936373336@resource.calendar.google.com","focus-corporation.com_3739333735323735393039@resource.calendar.google.com","focus-corporation.com_3132343934363632383933@resource.calendar.google.com","focus-corporation.com_@resource.calendar.google.com","focus-corporation.com_@resource.calendar.google.com","focus-corporation.com_@resource.calendar.google.com"]
-        indiceroom = self.recherche(location,nameroom)
+
+        #extraire l'email des invitees et de la salle
+        attendees = []
+        namerooms = ['Midoune Room','Aiguilles Room','Barrouta Room','Kantaoui Room','Gorges Room','Ichkeul Room','Khemir Room','Tamaghza Room','Friguia Room','Ksour Room','Medeina Room','Thyna Room']
+        emailrooms = ["focus-corporation.com_3436373433373035363932@resource.calendar.google.com","focus-corporation.com_3132323634363237333835@resource.calendar.google.com","focus-corporation.com_3335353934333838383834@resource.calendar.google.com","focus-corporation.com_3335343331353831343533@resource.calendar.google.com","focus-corporation.com_3436383331343336343130@resource.calendar.google.com","focus-corporation.com_36323631393136363531@resource.calendar.google.com","focus-corporation.com_3935343631343936373336@resource.calendar.google.com","focus-corporation.com_3739333735323735393039@resource.calendar.google.com","focus-corporation.com_3132343934363632383933@resource.calendar.google.com","focus-corporation.com_@resource.calendar.google.com","focus-corporation.com_@resource.calendar.google.com","focus-corporation.com_@resource.calendar.google.com"]
+        indiceroom = self.recherche(location,namerooms)
         if(indiceroom != None):
             #register the room mail
-            idmailr = emailroom[indiceroom]
+            idmailr = emailrooms[indiceroom]
             #freebusy
+            #if room is free: if(freebusy(self,idmailr)==True)
+            attendees.append(idmailr)
         else:
             self.speak_dialog("notRoom")
 
@@ -142,7 +144,7 @@ class TemplateSkill(MycroftSkill):
             print(adsmails)
             names = person.get('names', [])
             nameliste.append(names[0].get('displayName'))
-            attendees =[]
+
             for i in listpersons:
                 indiceperson= self.recherche(i,nameliste)
                 if(indiceperson!=None):
@@ -151,6 +153,37 @@ class TemplateSkill(MycroftSkill):
                     #freebusy
                     #if free
                     attendees.append(idmailp)
+
+            # creation d'un evenement
+        event = {
+            'summary':'meeting',
+            'location': location,
+            'description': '',
+            'start': {
+                'dateTime': '',
+                'timeZone': 'America/Los_Angeles',
+            },
+            'end': {
+                'dateTime': '',
+                'timeZone': 'America/Los_Angeles',
+            },
+            'recurrence': [
+                'RRULE:FREQ=DAILY;COUNT=1'
+            ],
+            'attendees': attendees,
+            'reminders': {
+                'useDefault': False,
+                'overrides': [
+                    {'method': 'email', 'minutes': 24 * 60},
+                    {'method': 'popup', 'minutes': 10},
+                ],
+            },
+        }
+        event = service.events().insert(calendarId='primary', sendNotifications=True, body=event).execute()
+        print('Event created: %s' % (event.get('htmlLink')))
+        self.speak_dialog("eventCreated")
+
+    """"""""
 
 def create_skill():
     return TemplateSkill()
