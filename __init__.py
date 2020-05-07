@@ -66,10 +66,10 @@ class TemplateSkill(MycroftSkill):
                 creds.refresh(Request())
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(
-                    'c:/Users/USER/PycharmProjects/TestCalendar/credentials.json', SCOPES)
+                    '/opt/mycroft/skills/testregskill.hanabouzid/client_secret.json', SCOPES)
                 creds = flow.run_local_server(port=0)
                 # Save the credentials for the next run
-            with open('c:/Users/USER/PycharmProjects/TestCalendar/token.pickle', 'wb') as token:
+            with open('token.pickle', 'wb') as token:
                 pickle.dump(creds, token)
 
         service = build('calendar', 'v3', credentials=creds)
@@ -96,7 +96,7 @@ class TemplateSkill(MycroftSkill):
         # installed application flow. The Storage object will ensure that,
         # if successful, the good Credentials will get written back to a
         # file.
-        storage = Storage('c:/Users/USER/PycharmProjects/TestCalendar/info.dat')
+        storage = Storage('info.dat')
         credentials = storage.get()
         if credentials is None or credentials.invalid == True:
             credentials = tools.run_flow(FLOW, storage)
